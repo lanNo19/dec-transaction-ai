@@ -1,4 +1,3 @@
-# feature_engineering.py
 import pandas as pd
 from typing import Optional
 from icontract import require, ensure
@@ -11,16 +10,12 @@ def create_behavioral_features(df: Optional[pd.DataFrame]) -> pd.DataFrame:
     :param df: The transaction data.
     :return: DataFrame with card_id as index and behavioral features as columns.
     """
-    pd.set_option('display.max_columns', None)  # Show all columns
-    pd.set_option('display.width', None)  # Do not wrap columns to next line
-    pd.set_option('display.max_colwidth', None)  # Show full content in each column
-    # Ensure transaction_timestamp is datetime
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.width', None)
+    pd.set_option('display.max_colwidth', None)
+
     df['transaction_timestamp'] = pd.to_datetime(df['transaction_timestamp'])
-
-    # Sort by card_id and timestamp
     df = df.sort_values(by=['card_id', 'transaction_timestamp'])
-
-    # Compute time difference between consecutive transactions
     df['time_diff'] = df.groupby('card_id')['transaction_timestamp'].diff().dt.total_seconds()
 
     # 1. Number of transactions
@@ -31,7 +26,14 @@ def create_behavioral_features(df: Optional[pd.DataFrame]) -> pd.DataFrame:
         ('mean_time_diff', 'mean'),
         ('std_time_diff', 'std')
     ])
-    time_diff_stats['time_diff_ratio'] = time_diff_stats['std_time_diff'] / time_diff_stats['mean_time_diff']
+
+    # Fill NaN std with 0
+    time_diff_stats['std_time_diff'] = time_diff_stats['std_time_diff'].fillna(0)
+
+    # Compute ratio and fill NaN (e.g., if mean is also NaN or zero)
+    time_diff_stats['time_diff_ratio'] = (
+            time_diff_stats['std_time_diff'] / time_diff_stats['mean_time_diff']
+    ).fillna(0)
 
     # 5-6. Unique merchants and ratio
     merchant_stats = df.groupby('card_id')['merchant_id'].nunique().rename('unique_merchants')
@@ -41,14 +43,14 @@ def create_behavioral_features(df: Optional[pd.DataFrame]) -> pd.DataFrame:
     mcc_stats = df.groupby('card_id')['merchant_mcc'].nunique().rename('unique_mccs')
     mcc_ratio = (n_txn / mcc_stats).rename('txn_per_mcc')
 
-    # 9-10. Most popular transaction type and its ratio
-    most_common_tx_type = df.groupby('card_id')['transaction_type'].agg(
-        lambda x: x.value_counts().index[0]
-    ).rename('most_common_tx_type')
-
-    most_common_tx_type_ratio = df.groupby('card_id')['transaction_type'].apply(
-        lambda x: x.value_counts().iloc[0] / len(x)
-    ).rename('most_common_tx_type_ratio')
+    # # 9-10. Most popular transaction type and its ratio
+    # most_common_tx_type = df.groupby('card_id')['transaction_type'].agg(
+    #     lambda x: x.value_counts().index[0]
+    # ).rename('most_common_tx_type')
+    #
+    # most_common_tx_type_ratio = df.groupby('card_id')['transaction_type'].apply(
+    #     lambda x: x.value_counts().iloc[0] / len(x)
+    # ).rename('most_common_tx_type_ratio')
 
     # 11-12. Mean & std of transaction_amount_kzt
     amount_stats = df.groupby('card_id')['transaction_amount_kzt'].agg([
@@ -81,8 +83,8 @@ def create_behavioral_features(df: Optional[pd.DataFrame]) -> pd.DataFrame:
         merchant_ratio,
         mcc_stats,
         mcc_ratio,
-        most_common_tx_type,
-        most_common_tx_type_ratio,
+        # most_common_tx_type,
+        # most_common_tx_type_ratio,
         amount_stats,
         ecom_ratio,
         contactless_ratio,
@@ -90,7 +92,11 @@ def create_behavioral_features(df: Optional[pd.DataFrame]) -> pd.DataFrame:
         foreign_ratio
     ], axis=1)
 
-    features.index.name='card_id'
+    # Encode most_common_tx_type to integers
+    # tx_type_mapping = {tx: idx for idx, tx in enumerate(features['most_common_tx_type'].dropna().unique(), start=1)}
+    # features['most_common_tx_type_encoded'] = features['most_common_tx_type'].map(tx_type_mapping)
+
+    features.index.name = 'card_id'
     return features
 
 
@@ -101,3 +107,9 @@ if __name__ == '__main__':
         features = create_behavioral_features(transaction_data)
         print(features.head())
         print(features.shape)
+        nan_locations = features[features.isna().any(axis=1)]
+        for row_idx, row in nan_locations.iterrows():
+            missing_cols = row[row.isna()].index.tolist()
+            print(f"Row {row_idx} has NaNs in columns: {missing_cols}")
+        print(features.loc[10453])
+
