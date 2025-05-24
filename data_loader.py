@@ -1,4 +1,3 @@
-# data_loader.py
 import pandas as pd
 from typing import Optional
 from icontract import require, ensure
