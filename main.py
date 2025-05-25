@@ -1,6 +1,6 @@
 # main.py
 from data_loader import load_transaction_data
-from feature_engineering import create_behavioral_features
+from feature_engineering import create_enhanced_behavioral_features
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.cluster import AgglomerativeClustering, SpectralClustering, KMeans
@@ -15,10 +15,11 @@ if __name__ == '__main__':
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', None)
     pd.set_option('display.max_colwidth', None)
+    pd.set_option('display.max_rows', None)
 
     transaction_data = load_transaction_data('data/transactions.parquet')
     if transaction_data is not None:
-        df = create_behavioral_features(transaction_data)
+        df = create_enhanced_behavioral_features(transaction_data)
     else:
         print("Failed to load transaction data")
         exit(1)
@@ -78,7 +79,7 @@ if __name__ == '__main__':
 
     # Create DataFrame and plot
     results_df = pd.DataFrame(results)
-    print(results_df[(results_df['Reduction']=='UMAP')&(results_df['Clustering']=='Agglomerative')])
+    print(results_df[results_df['Reduction']=='UMAP'])
 
     plt.figure(figsize=(12, 6))
     for (red, cluster), group in results_df.groupby(['Reduction', 'Clustering']):
@@ -97,7 +98,7 @@ if __name__ == '__main__':
     X_umap = umap_reducer.fit_transform(X_scaled)
 
     # Apply Agglomerative Clustering
-    agg_clusterer = AgglomerativeClustering(n_clusters=6)
+    agg_clusterer = AgglomerativeClustering(n_clusters=9)
     cluster_labels = agg_clusterer.fit_predict(X_umap)
 
     # Calculate silhouette score
