@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from typing import Optional
+from typing import Optional, Dict, List, Tuple
 from icontract import require, ensure
 from sklearn.preprocessing import StandardScaler
 import warnings
@@ -327,7 +327,7 @@ def create_enhanced_behavioral_features(df: Optional[pd.DataFrame]) -> pd.DataFr
         return basic_features.fillna(0)
 
 
-def remove_low_variance_features(X, threshold=0.01):
+def remove_low_variance_features(X: pd.DataFrame, threshold: float = 0.01) -> pd.DataFrame:
     """Remove features with very low variance that don't contribute to segmentation"""
     from sklearn.feature_selection import VarianceThreshold
 
@@ -349,7 +349,7 @@ def remove_low_variance_features(X, threshold=0.01):
         return X
 
 
-def remove_highly_correlated_features(X, threshold=0.95):
+def remove_highly_correlated_features(X: pd.DataFrame, threshold: float = 0.95) -> pd.DataFrame:
     """Remove features that are highly correlated with others"""
 
     if X.empty or len(X.columns) < 2:
@@ -376,7 +376,7 @@ def remove_highly_correlated_features(X, threshold=0.95):
         return X
 
 
-def create_behavioral_segments_analysis(df, features):
+def create_behavioral_segments_analysis(df: pd.DataFrame, features: pd.DataFrame) -> Dict[str, List[str]]:
     """Analyze the created features to suggest good segmentation approaches"""
 
     print("=== FEATURE ANALYSIS FOR SEGMENTATION ===")
@@ -461,7 +461,11 @@ def create_behavioral_segments_analysis(df, features):
     }
 
 
-def preprocess_features_for_clustering(features, remove_outliers=True, scale_features=True):
+def preprocess_features_for_clustering(
+    features: pd.DataFrame,
+    remove_outliers: bool = True,
+    scale_features: bool = True
+) -> Tuple[pd.DataFrame, StandardScaler | None]:
     """Preprocess features for clustering by handling outliers and scaling"""
 
     if features.empty:
