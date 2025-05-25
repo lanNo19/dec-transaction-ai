@@ -11,12 +11,12 @@ from scipy.cluster.hierarchy import dendrogram, linkage
 from scipy.spatial.distance import pdist
 import warnings
 from data_loader import load_transaction_data
-from feature_engineering import create_behavioral_features
+from feature_engineering import create_enhanced_behavioral_features
 
 warnings.filterwarnings('ignore')
 transaction_data = load_transaction_data('data/transactions.parquet')
 if transaction_data is not None:
-    df = create_behavioral_features(transaction_data)
+    df = create_enhanced_behavioral_features(transaction_data)
 else:
     print("Failed to load transaction data")
     exit(1)
@@ -46,7 +46,7 @@ def analyze_umap_agglomerative(X, df=None):
     X_umap = umap_reducer.fit_transform(X_scaled)
 
     # Apply Agglomerative Clustering
-    agg_clusterer = AgglomerativeClustering(n_clusters=6)
+    agg_clusterer = AgglomerativeClustering(n_clusters=9)
     cluster_labels = agg_clusterer.fit_predict(X_umap)
 
     # Calculate silhouette score
@@ -67,7 +67,7 @@ def analyze_umap_agglomerative(X, df=None):
     plt.ylabel('UMAP Component 2')
 
     # Add cluster centers
-    for i in range(6):
+    for i in range(10):
         cluster_center = X_umap[cluster_labels == i].mean(axis=0)
         plt.scatter(cluster_center[0], cluster_center[1],
                     marker='x', s=200, c='red', linewidth=3)
@@ -103,11 +103,11 @@ def analyze_umap_agglomerative(X, df=None):
     # 3. Cluster Size Distribution
     ax3 = plt.subplot(2, 3, 3)
     cluster_sizes = pd.Series(cluster_labels).value_counts().sort_index()
-    bars = plt.bar(range(6), cluster_sizes.values, color=colors, alpha=0.7)
+    bars = plt.bar(range(10), cluster_sizes.values, color=colors, alpha=0.7)
     plt.xlabel('Cluster')
     plt.ylabel('Number of Customers')
     plt.title('Cluster Size Distribution', fontweight='bold')
-    plt.xticks(range(5))
+    plt.xticks(range(10))
 
     # Add value labels on bars
     for bar, size in zip(bars, cluster_sizes.values):
@@ -116,7 +116,7 @@ def analyze_umap_agglomerative(X, df=None):
 
     # 4. UMAP Components Distribution
     ax4 = plt.subplot(2, 3, 4)
-    for i in range(6):
+    for i in range(10):
         cluster_data = X_umap[cluster_labels == i]
         plt.scatter(cluster_data[:, 0], cluster_data[:, 1],
                     label=f'Cluster {i}', alpha=0.6, s=30)
@@ -145,7 +145,7 @@ def analyze_umap_agglomerative(X, df=None):
     wcss = []
     cluster_silhouettes = []
 
-    for i in range(6):
+    for i in range(10):
         cluster_data = X_umap[cluster_labels == i]
         if len(cluster_data) > 1:
             cluster_center = cluster_data.mean(axis=0)
@@ -208,7 +208,7 @@ def create_business_segment_profiles(X, cluster_labels, feature_names=None):
     # Calculate cluster centers in original feature space
     cluster_profiles = []
 
-    for cluster_id in range(6):
+    for cluster_id in range(10):
         cluster_mask = cluster_labels == cluster_id
         cluster_data = X[cluster_mask]
 
